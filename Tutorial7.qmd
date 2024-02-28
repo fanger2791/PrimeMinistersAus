@@ -1,10 +1,43 @@
 ---
-title: "Tutorial7"
-format: html
-editor: visual
+title: "How long each prime minister of Australia lived"
+author: "Michael Fang"
+format: pdf
+date: "today"
+date-format: long
+number-sections: true
+thanks: "Code and data from this analysis are available at: https://github.com/fanger2791/PrimeMinistersAus"
+bibliography: references.bib
 ---
 
+# Analysis
+
+## Source
+
+The project involved gathering data on Australian Prime Ministers from Wikipedia [@WikiAus] using the rvest [@rvest] package in R [@citeR] for web scraping, along with several other packages (dplyr [@dplyr], tidyr [@tidyr], stringr [@stringr], babynames [@babynames], janitor [@janitor], knitr [@knitr]) to manipulate and clean the data. The process began by fetching the raw HTML content of the Wikipedia page listing the Prime Ministers of Australia. This content was then converted to a character string and saved to a file named **`pms.html`** for processing.
+
+## Challenge
+
+The main challenge was parsing the data from the HTML content accurately. This was done by identifying the correct CSS selector (**`.wikitable`**) that contained the data in a table format on the Wikipedia page. The **`html_table()`** function from **`rvest`** was used to extract the table data, which was then processed to clean and format the information appropriately. This involved renaming columns, separating combined data into distinct columns (such as names and birth-death years), and filtering out unwanted rows.
+
+One aspect that took longer than expected was dealing with the inconsistencies in the data format, especially for Prime Ministers who are still alive versus those who have passed away. This required custom handling to accurately extract and calculate ages, as well as ensuring that birth and death years were correctly identified and separated.
+
+## What was enjoyable?
+
+The project became particularly enjoyable during the data cleaning and manipulation phase. Discovering and applying functions from **`dplyr`** and **`tidyr`** to transform the raw, messy data into a structured and meaningful dataset was satisfying. It was a practical application of data science techniques that showcased the power of R in handling and cleaning data.
+
+## What would I do differently?
+
+If I were to approach this project again, one thing I would do differently is to spend more time upfront planning the data cleaning steps. Anticipating potential issues with the data format and consistency could streamline the process. Additionally, exploring more advanced text processing techniques or regular expressions to handle the variability in the data might make the cleaning process more efficient and robust.
+
+# Table
+
 ```{r}
+#| label: tbl-aus-prime-ministers
+#| tbl-cap: Aus Prime Ministers, by how old they were when they died
+#| message: false
+#| echo: false
+#| warning: false
+
 library(rvest)
 library(dplyr)
 library(tidyr)
@@ -69,10 +102,22 @@ aus_cleaned_data <-
   mutate(Age_at_Death = died - born) |> 
   distinct() # Some of the PMs had two goes at it.
 
-head(aus_cleaned_data)
+aus_cleaned_data |>
+  slice(-1) |>
+  kable(
+    col.names = c("Prime Minister", "Birth year", "Death year", "Age at death")
+    )
 ```
 
+# Graph
+
 ```{r}
+#| label: fig-aus
+#| fig-cap: How long each prime minister of Australia lived
+#| message: false
+#| echo: false
+#| warning: false
+
 library(rvest)
 library(dplyr)
 library(tidyr)
@@ -100,3 +145,11 @@ aus_cleaned_data |>
   scale_color_brewer(palette = "Set1") +
   theme(legend.position = "bottom")
 ```
+
+# Conclusion
+
+In summary, this project was a comprehensive exercise in web scraping, data cleaning, and manipulation using R. It highlighted the importance of thoroughly understanding the data source and structure, as well as the challenges and rewards of transforming raw data into a usable format for analysis.
+
+\newpage
+
+# References
