@@ -1,0 +1,102 @@
+---
+title: "Tutorial7"
+format: html
+editor: visual
+---
+
+```{r}
+library(rvest)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(babynames)
+library(janitor)
+library(knitr)
+
+# Fetch the raw HTML content
+raw_data <- read_html("https://en.wikipedia.org/wiki/List_of_prime_ministers_of_Australia")
+
+# Convert the HTML content to a character string
+html_content <- as.character(raw_data)
+
+# Use writeLines to save the HTML content to a file
+writeLines(html_content, "pms.html")
+
+# Read the HTML content back from the file
+raw_data <- read_html("pms.html")
+
+# Parse the data using the desired CSS selector (adjust if necessary)
+parse_data_selector_gadget <- raw_data %>%
+  html_element(".wikitable") %>%
+  html_table()
+
+parse_data_selector_gadget <-
+  raw_data |>
+  html_element(".wikitable") |>
+  html_table()
+
+parsed_data <-
+  parse_data_selector_gadget |> 
+  clean_names() |> 
+  rename(raw_text = `name_birth_death_constituency`) |> 
+  select(raw_text) |> 
+  filter(raw_text != "Name (Birth-Death) Constituency") |> 
+  distinct() 
+
+initial_clean <-
+  parsed_data |>
+  separate(
+    raw_text, into = c("name", "not_name"), sep = "\\(", extra = "merge",
+  ) |> 
+  
+  mutate(date = str_extract(not_name, "[[:digit:]]{4}–[[:digit:]]{4}"),
+         born = str_extract(not_name, "[[:space:]][[:digit:]]{4}")
+         ) |>
+  select(name, date, born)
+  
+
+aus_cleaned_data <-
+  initial_clean |>
+  separate(date, into = c("birth", "died"), 
+           sep = "–") |>
+  mutate(
+    born = str_remove_all(born, "born[[:space:]]"),
+    birth = if_else(!is.na(born), born, birth)
+  ) |> # Alive PMs have slightly different format
+  select(-born) |>
+  rename(born = birth) |> 
+  mutate(across(c(born, died), as.integer)) |> 
+  mutate(Age_at_Death = died - born) |> 
+  distinct() # Some of the PMs had two goes at it.
+
+head(aus_cleaned_data)
+```
+
+```{r}
+library(rvest)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(babynames)
+library(janitor)
+library(knitr)
+library(ggplot2)
+library(forcats)
+
+aus_cleaned_data |>
+  mutate(
+    still_alive = if_else(is.na(died), "Yes", "No"),
+    died = if_else(is.na(died), as.integer(2023), died)
+  ) |>
+  mutate(name = as_factor(name)) |>
+  ggplot(
+    aes(x = born, xend = died, y = name, yend = name, color = still_alive)
+    ) +
+  geom_segment() +
+  labs(
+    x = "Year of birth", y = "Prime minister", color = "PM is currently alive"
+    ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom")
+```
